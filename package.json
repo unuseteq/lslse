@@ -1,0 +1,6 @@
+﻿{
+  "name": "bestgames-board",
+  "version": "1.0.0",
+  "description": "Интерактивные доски BestGames",
+  "scripts": {"start": "npx serve ."}
+}
