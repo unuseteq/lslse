@@ -16,9 +16,47 @@ const esc = value => String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&
 function render() { state.user ? renderApp() : renderAuth(); }
 function renderAuth() {
   const register = state.route === 'register';
-  app.innerHTML = `<main class="auth"><section class="auth-card"><div class="brand"><span class="brand-mark">✦</span> BestGames</div><h1>${register ? 'Создайте аккаунт' : 'С возвращением'}</h1><p class="subtitle">${register ? 'Начните собирать идеи вместе с командой' : 'Войдите, чтобы продолжить работу'}</p><form id="auth-form"><div class="field"><label for="email">E-mail</label><input id="email" type="email" required placeholder="you@example.com"></div>${register ? '<div class="field"><label for="name">Имя</label><input id="name" pattern="[A-Za-zА-Яа-яЁё ]+" required placeholder="Ваше имя"></div>' : ''}<div class="field"><label for="password">Пароль</label><input id="password" type="password" minlength="8" required placeholder="Минимум 8 символов"></div><div class="error" id="form-error"></div><button class="btn btn-primary" style="width:100%" type="submit">${register ? 'Зарегистрироваться' : 'Войти'}</button></form><p class="auth-switch">${register ? 'Уже есть аккаунт?' : 'Нет аккаунта?'} <span class="link" data-route="${register ? 'login' : 'register'}">${register ? 'Войти' : 'Создать аккаунт'}</span></p></section></main>`;
+  app.innerHTML = `<main class="auth"><section class="auth-card"><div class="brand"><span class="brand-mark">✦</span> BestGames</div><h1>${register ? 'Создайте аккаунт' : 'С возвращением'}</h1><p class="subtitle">${register ? 'Начните собирать идеи вместе с командой' : 'Войдите, чтобы продолжить работу'}</p><form id="auth-form" novalidate><div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div>${register ? '<div class="field"><label for="name">Имя</label><input id="name" name="name" required autocomplete="name" placeholder="Ваше имя"></div>' : ''}<div class="field"><label for="password">Пароль</label><input id="password" name="password" type="password" required autocomplete="${register ? 'new-password' : 'current-password'}" placeholder="${register ? 'Не менее 8 символов, цифра и спецсимвол' : 'Введите пароль'}"></div><div class="error" id="form-error" role="alert"></div><button class="btn btn-primary" style="width:100%" type="submit">${register ? 'Зарегистрироваться' : 'Войти'}</button></form><p class="auth-switch">${register ? 'Уже есть аккаунт?' : 'Нет аккаунта?'} <span class="link" data-route="${register ? 'login' : 'register'}">${register ? 'Войти' : 'Создать аккаунт'}</span></p></section></main>`;
   document.querySelector('[data-route]').onclick = e => { state.route = e.target.dataset.route; render(); };
-  document.querySelector('#auth-form').onsubmit = e => { e.preventDefault(); const form = new FormData(e.target); const email = form.get('email'); const password = form.get('password'); const error = document.querySelector('#form-error'); if (password.length < 8 || (register && !/[0-9]/.test(password)) || (register && !/[!@#$%^&*]/.test(password))) { error.textContent = 'Пароль: минимум 8 символов, цифра и спецсимвол'; return; } state.user = { email, name: form.get('name') || email.split('@')[0] }; state.route = 'boards'; save(); render(); };
+  document.querySelector('#auth-form').onsubmit = e => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get('email') || '').trim().toLowerCase();
+    const password = String(form.get('password') || '');
+    const name = String(form.get('name') || '').trim();
+    const error = document.querySelector('#form-error');
+    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (!emailIsValid) {
+      error.textContent = 'Введите корректный адрес электронной почты.';
+      return;
+    }
+    if (register && !name) {
+      error.textContent = 'Укажите имя.';
+      return;
+    }
+    if (register && !/^[A-Za-z]+$/.test(name)) {
+      error.textContent = 'Имя должно быть написано латиницей.';
+      return;
+    }
+    if (register && password.length < 8) {
+      error.textContent = 'Пароль должен содержать не менее 8 символов.';
+      return;
+    }
+    if (register && !/\d/.test(password)) {
+      error.textContent = 'Добавьте в пароль хотя бы одну цифру.';
+      return;
+    }
+    if (register && !/[^A-Za-z0-9]/.test(password)) {
+      error.textContent = 'Добавьте в пароль хотя бы один спецсимвол.';
+      return;
+    }
+
+    state.user = { email, name: register ? name : (state.user?.name || email.split('@')[0]) };
+    state.route = 'boards';
+    save();
+    render();
+  };
 }
 function renderApp() { state.activeBoard ? renderEditor() : renderBoards(); }
 function renderBoards() {
